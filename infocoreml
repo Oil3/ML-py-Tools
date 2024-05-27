@@ -1,0 +1,354 @@
+# extracts all coreml model's informations
+import coremltools as ct
+import os
+
+# Function to get the model path interactively
+def get_model_path():
+    model_path = input("Enter the path to your Core ML model (.mlmodel or .mlpackage file) or press Enter to exit: ").strip()
+    if model_path:
+        return model_path
+    else:
+        return None
+
+# Load the Core ML model
+def load_model(model_path):
+    if os.path.isdir(model_path):
+        # Assuming it's an .mlpackage directory
+        model = ct.models.MLModel(model_path)
+    else:
+        # Assuming it's an .mlmodel file
+        model = ct.models.MLModel(model_path)
+    return model
+
+# Extract model metadata
+def extract_metadata(model):
+    metadata = model.get_spec().description.metadata
+    print("Model Metadata:")
+    print(f"  Author: {metadata.author.strip()}")
+    print(f"  Short description: {metadata.shortDescription.strip()}")
+    print(f"  License: {metadata.license.strip()}")
+    print(f"  Version: {metadata.versionString.strip()}")
+
+# Extract input and output descriptions
+def extract_io_description(model):
+    input_desc = model.get_spec().description.input
+    output_desc = model.get_spec().description.output
+
+    print("\nInput Descriptions:")
+    for input in input_desc:
+        shape = []
+        if input.type.WhichOneof('Type') == 'multiArrayType':
+            shape = input.type.multiArrayType.shape
+        elif input.type.WhichOneof('Type') == 'imageType':
+            shape = [input.type.imageType.width, input.type.imageType.height, input.type.imageType.colorSpace]
+        print(f"  Name: {input.name.strip()}, Type: {input.type.WhichOneof('Type')}, Shape: {shape}")
+
+    print("\nOutput Descriptions:")
+    for output in output_desc:
+        shape = []
+        if output.type.WhichOneof('Type') == 'multiArrayType':
+            shape = output.type.multiArrayType.shape
+        elif output.type.WhichOneof('Type') == 'imageType':
+            shape = [output.type.imageType.width, output.type.imageType.height, output.type.imageType.colorSpace]
+        print(f"  Name: {output.name.strip()}, Type: {output.type.WhichOneof('Type')}, Shape: {shape}")
+
+# Extract neural network layer information
+def extract_layers(model):
+    spec = model.get_spec()
+    if spec.WhichOneof('Type') == 'neuralNetwork':
+        nn_spec = spec.neuralNetwork
+        print("\nNeural Network Layers:")
+        for layer in nn_spec.layers:
+            try:
+                print(f"Layer Name: {layer.name.strip()}")
+                if layer.HasField('convolution'):
+                    conv = layer.convolution
+                    print(f"  Type: Convolution")
+                    print(f"  Kernel Channels: {conv.kernelChannels}")
+                    print(f"  Output Channels: {conv.outputChannels}")
+                    print(f"  Kernel Size: {conv.kernelSize}")
+                    print(f"  Stride: {conv.stride}")
+                    print(f"  Weights: {len(conv.weights.floatValue)} values")
+                    if conv.hasBias:
+                        print(f"  Bias: {conv.bias.floatValue}")
+                elif layer.HasField('innerProduct'):
+                    ip = layer.innerProduct
+                    print(f"  Type: Fully Connected")
+                    print(f"  Input Channels: {ip.inputChannels}")
+                    print(f"  Output Channels: {ip.outputChannels}")
+                    print(f"  Weights: {len(ip.weights.floatValue)} values")
+                    if ip.hasBias:
+                        print(f"  Bias: {ip.bias.floatValue}")
+                elif layer.HasField('activation'):
+                    activation = layer.activation
+                    print(f"  Type: Activation")
+                    print(f"  Activation Type: {activation.WhichOneof('NonlinearityType')}")
+                elif layer.HasField('batchnorm'):
+                    bn = layer.batchnorm
+                    print(f"  Type: Batch Normalization")
+                    print(f"  Gamma: {bn.gamma.floatValue}")
+                    print(f"  Beta: {bn.beta.floatValue}")
+                    print(f"  Mean: {bn.mean.floatValue}")
+                    print(f"  Variance: {bn.variance.floatValue}")
+                elif layer.HasField('pooling'):
+                    pool = layer.pooling
+                    print(f"  Type: Pooling")
+                    print(f"  Pooling Type: {pool.type}")
+                    print(f"  Kernel Size: {pool.kernelSize}")
+                    print(f"  Stride: {pool.stride}")
+                    # Added try-except for padding to avoid missing attribute errors
+                    try:
+                        print(f"  Padding: {pool.padding}")
+                    except AttributeError:
+                        print(f"  Padding: Not available")
+                elif layer.HasField('softmax'):
+                    sm = layer.softmax
+                    print(f"  Type: Softmax")
+                    print(f"  Axis: {sm.axis}")
+                elif layer.HasField('reshape'):
+                    reshape = layer.reshape
+                    print(f"  Type: Reshape")
+                    print(f"  Target Shape: {reshape.targetShape}")
+            except Exception as e:
+                print(f"  Error processing layer {layer.name.strip()}: {e}")
+
+# Extract preprocessing and postprocessing steps
+def extract_preprocessing_postprocessing(model):
+    spec = model.get_spec()
+    if spec.HasField('pipeline'):
+        pipeline = spec.pipeline
+        print("\nPipeline Models:")
+        for model in pipeline.models:
+            print(f"  Model Type: {model.WhichOneof('Type')}")
+    if spec.HasField('neuralNetwork'):
+        nn_spec = spec.neuralNetwork
+        if nn_spec.preprocessing:
+            print("\nPreprocessing Steps:")
+            for step in nn_spec.preprocessing:
+                print(f"  Preprocessing Type: {step.WhichOneof('preprocessor')}")
+                if step.HasField('scaler'):
+                    scaler = step.scaler
+                    print(f"    Scaler Mean: {scaler.channelScale}")
+                    print(f"    Scaler Bias: {scaler.channelBias}")
+        if nn_spec.postprocessing:
+            print("\nPostprocessing Steps:")
+            for step in nn_spec.postprocessing:
+                print(f"  Postprocessing Type: {step.WhichOneof('postprocessor')}")
+                if step.HasField('scaler'):
+                    scaler = step.scaler
+                    print(f"    Scaler Mean: {scaler.channelScale}")
+                    print(f"    Scaler Bias: {scaler.channelBias}")
+
+# Extract pipeline models (if applicable)
+def extract_pipeline_models(model):
+    spec = model.get_spec()
+    if spec.HasField('pipeline'):
+        pipeline = spec.pipeline
+        print("\nPipeline Models:")
+        for submodel in pipeline.models:
+            print(f"  Sub-model Type: {submodel.WhichOneof('Type')}")
+
+# Extract training information (if available)
+def extract_training_information(model):
+    spec = model.get_spec()
+    if spec.HasField('neuralNetwork'):
+        nn_spec = spec.neuralNetwork
+        if nn_spec.HasField('trainingInput'):
+            training = nn_spec.trainingInput
+            print("\nTraining Information:")
+            print(f"  Optimizer: {training.optimizer}")
+            print(f"  Learning Rate: {training.learningRate}")
+            print(f"  Epochs: {training.epochs}")
+
+# Extract custom layers (if applicable)
+def extract_custom_layers(model):
+    spec = model.get_spec()
+    if spec.HasField('neuralNetwork'):
+        nn_spec = spec.neuralNetwork
+        for layer in nn_spec.layers:
+            if layer.HasField('custom'):
+                custom = layer.custom
+                print(f"\nCustom Layer: {custom.className}")
+
+# Extract feature descriptions
+def extract_feature_descriptions(model):
+    input_desc = model.get_spec().description.input
+    output_desc = model.get_spec().description.output
+
+    print("\nInput Feature Descriptions:")
+    for input in input_desc:
+        print(f"  Name: {input.name.strip()}, Type: {input.type.WhichOneof('Type')}")
+        if input.type.WhichOneof('Type') == 'multiArrayType':
+            print(f"  Shape: {input.type.multiArrayType.shape}")
+
+    print("\nOutput Feature Descriptions:")
+    for output in output_desc:
+        print(f"  Name: {output.name.strip()}, Type: {output.type.WhichOneof('Type')}")
+        if output.type.WhichOneof('Type') == 'multiArrayType':
+            print(f"  Shape: {output.type.multiArrayType.shape}")
+
+# Extract feature constraints (if applicable)
+def extract_feature_constraints(model):
+    input_desc = model.get_spec().description.input
+    output_desc = model.get_spec().description.output
+
+    print("\nInput Feature Constraints:")
+    for input in input_desc:
+        constraints = input.type.multiArrayType
+        if constraints.HasField('shape'):
+            print(f"  Name: {input.name.strip()}, Shape: {constraints.shape}")
+
+    print("\nOutput Feature Constraints:")
+    for output in output_desc:
+        constraints = output.type.multiArrayType
+        if constraints.HasField('shape'):
+            print(f"  Name: {output.name.strip()}, Shape: {constraints.shape}")
+
+# Extract model type-specific information
+def extract_model_type_specific_info(model):
+    spec = model.get_spec()
+    model_type = spec.WhichOneof('Type')
+    print(f"\nModel Type: {model_type}")
+    # Add more details for specific model types if needed
+
+# Extract quantization details (if applicable)
+def extract_quantization_details(model):
+    spec = model.get_spec()
+    if spec.HasField('quantization'):
+        quantization = spec.quantization
+        print("\nQuantization Details:")
+        print(f"  Quantization Scheme: {quantization.scheme}")
+        print(f"  Parameters: {quantization.parameters}")
+
+# Extract specification version
+def extract_specification_version(model):
+    spec = model.get_spec()
+    print(f"\nSpecification Version: {spec.specificationVersion}")
+
+# Extract protobuf messages
+def extract_protobuf_messages(model):
+    spec = model.get_spec()
+    print(f"\nProtobuf Messages: {spec}")
+
+# Extract weights and biases for all layers
+def extract_weights_biases(model):
+    spec = model.get_spec()
+    if spec.WhichOneof('Type') == 'neuralNetwork':
+        nn_spec = spec.neuralNetwork
+        print("\nWeights and Biases:")
+        for layer in nn_spec.layers:
+            try:
+                if layer.HasField('convolution'):
+                    conv = layer.convolution
+                    print(f"Layer: {layer.name.strip()}")
+                    print(f"  Weights: {conv.weights.floatValue}")
+                    if conv.hasBias:
+                        print(f"  Bias: {conv.bias.floatValue}")
+                elif layer.HasField('innerProduct'):
+                    ip = layer.innerProduct
+                    print(f"Layer: {layer.name.strip()}")
+                    print(f"  Weights: {ip.weights.floatValue}")
+                    if ip.hasBias:
+                        print(f"  Bias: {ip.bias.floatValue}")
+            except Exception as e:
+                print(f"  Error processing layer {layer.name.strip()}: {e}")
+
+def main():
+    while True:
+        model_path = get_model_path()
+        if not model_path:
+            print("Exiting the script.")
+            break
+
+        try:
+            model = load_model(model_path)
+
+            if input('Get Model Metadata? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_metadata(model)
+                except Exception as e:
+                    print(f"  Error extracting model metadata: {e}")
+
+            if input('Get Input and Output Descriptions? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_io_description(model)
+                except Exception as e:
+                    print(f"  Error extracting input and output descriptions: {e}")
+
+            if input('Get Layer Information? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_layers(model)
+                except Exception as e:
+                    print(f"  Error extracting layer information: {e}")
+
+            if input('Get Preprocessing and Postprocessing Steps? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_preprocessing_postprocessing(model)
+                except Exception as e:
+                    print(f"  Error extracting preprocessing and postprocessing steps: {e}")
+
+            if input('Get Pipeline Models? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_pipeline_models(model)
+                except Exception as e:
+                    print(f"  Error extracting pipeline models: {e}")
+
+            if input('Get Training Information? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_training_information(model)
+                except Exception as e:
+                    print(f"  Error extracting training information: {e}")
+
+            if input('Get Custom Layers? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_custom_layers(model)
+                except Exception as e:
+                    print(f"  Error extracting custom layers: {e}")
+
+            if input('Get Feature Descriptions? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_feature_descriptions(model)
+                except Exception as e:
+                    print(f"  Error extracting feature descriptions: {e}")
+
+            if input('Get Feature Constraints? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_feature_constraints(model)
+                except Exception as e:
+                    print(f"  Error extracting feature constraints: {e}")
+
+            if input('Get Model Type Specific Information? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_model_type_specific_info(model)
+                except Exception as e:
+                    print(f"  Error extracting model type specific information: {e}")
+
+            if input('Get Quantization Details? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_quantization_details(model)
+                except Exception as e:
+                    print(f"  Error extracting quantization details: {e}")
+
+            if input('Get Specification Version? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_specification_version(model)
+                except Exception as e:
+                    print(f"  Error extracting specification version: {e}")
+
+            if input('Get Protobuf Messages? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_protobuf_messages(model)
+                except Exception as e:
+                    print(f"  Error extracting protobuf messages: {e}")
+
+            if input('Get Weights and Biases for All Layers? Enter "y" or press "Enter" to get, enter "n" to dismiss: ').strip().lower() != 'n':
+                try:
+                    extract_weights_biases(model)
+                except Exception as e:
+                    print(f"  Error extracting weights and biases: {e}")
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    main()
