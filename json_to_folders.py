@@ -1,3 +1,4 @@
+# sorts files into folders based on selected attributes values of a JSON file. 
 import os
 import json
 
