@@ -1,5 +1,6 @@
-**download_coco_categories.py** - downloads specific classes from the coco dataset.
-Interactive as in prompts you what and where with then a progress bar, but also runnable like `py script.py 0` for class 0 in a newfolder in current directoy or like `py script.py 1,33,56,57,70 download_path` with specific directory. 
+**download_coco_categories.py** - downloads specific classes from the coco dataset, multi-threaded, also creates yolo-format label files for each image (detection.
+![image](https://github.com/user-attachments/assets/33877648-ee9f-423f-9fa8-2103ba61dc1a)
+Interactive as in prompts you what and where with then a progress bar, multi-threaded as in as fast as possible, also runnable for exemple, like `py script.py 0` for class 0 in a newfolder in current directoy, or like `py script.py 1,33,56,57,70 download_path` with specific directory. 
 
 **Structure.py** - recreates folder structure while choosing how many files are copied from the original folders.
 I use to create validation datesets from training datasets.
