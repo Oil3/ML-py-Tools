@@ -1,4 +1,4 @@
-**download_coco_categories.py** downloads specific classes from the coco dataset.
+**download_coco_categories.py** - downloads specific classes from the coco dataset.
 Interactive as in prompts you what and where with then a progress bar, but also runnable like `py script.py 0` for class 0 in a newfolder in current directoy or like `py script.py 1,33,56,57,70 download_path` with specific directory. 
 
 **Structure.py** - recreates folder structure while choosing how many files are copied from the original folders.
