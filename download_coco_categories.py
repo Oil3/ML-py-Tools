@@ -1,17 +1,20 @@
 #pip install pycocotools requests tqdm
-# interactive script to download specific class(es) from the coco dataset
-#script first downloads annotations to then query user's choice(s)
-#can also run like so "python3 download_coco_categories.py 0,1,2 download_path(optional, default: current directory)"
+# multi-threaded interactive script to download specific class(es) from the coco dataset
+# script first downloads annotations to then query user's choice(s)
+# can also run like so "python3 download_coco_categories.py 0,1,2 download_path(optional, default: current directory)"
 import os
 import sys
 import requests
 from pycocotools.coco import COCO
 from tqdm import tqdm
+import concurrent.futures
+import threading
 import time
 
 # Constants
 BASE_URL = 'http://images.cocodataset.org/'
 ANN_FILE = 'http://images.cocodataset.org/annotations/annotations_trainval2017.zip'
+lock = threading.Lock()
 
 def download_file(url, dest):
     response = requests.get(url, stream=True)
@@ -47,6 +50,27 @@ def list_categories(coco):
     category_names = {category['id']: category['name'] for category in categories}
     return category_names
 
+def download_image(img, images_dir):
+    img_url = BASE_URL + 'train2017/' + img['file_name']
+    img_data = requests.get(img_url).content
+    img_file = os.path.join(images_dir, img['file_name'])
+
+    with open(img_file, 'wb') as handler:
+        handler.write(img_data)
+
+def create_label_file(img, anns, labels_dir, category_ids):
+    label_file = os.path.join(labels_dir, f"{os.path.splitext(img['file_name'])[0]}.txt")
+    with open(label_file, 'w') as lf:
+        for ann in anns:
+            category_id = ann['category_id']
+            if category_id in category_ids:
+                bbox = ann['bbox']
+                x_center = (bbox[0] + bbox[2] / 2) / img['width']
+                y_center = (bbox[1] + bbox[3] / 2) / img['height']
+                width = bbox[2] / img['width']
+                height = bbox[3] / img['height']
+                lf.write(f"{category_ids.index(category_id)} {x_center} {y_center} {width} {height}\n")
+
 def download_images_and_create_labels(data_dir, category_ids, category_names, limit=None):
     # Initialize COCO api
     coco = COCO(os.path.join(data_dir, 'annotations', 'instances_train2017.json'))
@@ -63,30 +87,19 @@ def download_images_and_create_labels(data_dir, category_ids, category_names, li
     os.makedirs(images_dir, exist_ok=True)
     os.makedirs(labels_dir, exist_ok=True)
 
-    # Download images and create label files
-    for img in tqdm(imgs, desc="Downloading images and creating labels", unit="image"):
-        img_url = BASE_URL + 'train2017/' + img['file_name']
-        img_data = requests.get(img_url).content
-        img_file = os.path.join(images_dir, img['file_name'])
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_img = {executor.submit(download_image, img, images_dir): img for img in imgs}
 
-        with open(img_file, 'wb') as handler:
-            handler.write(img_data)
-
-        # Create label file
-        annIds = coco.getAnnIds(imgIds=img['id'], catIds=category_ids, iscrowd=None)
-        anns = coco.loadAnns(annIds)
-
-        label_file = os.path.join(labels_dir, f"{os.path.splitext(img['file_name'])[0]}.txt")
-        with open(label_file, 'w') as lf:
-            for ann in anns:
-                category_id = ann['category_id']
-                if category_id in category_ids:
-                    bbox = ann['bbox']
-                    x_center = (bbox[0] + bbox[2] / 2) / img['width']
-                    y_center = (bbox[1] + bbox[3] / 2) / img['height']
-                    width = bbox[2] / img['width']
-                    height = bbox[3] / img['height']
-                    lf.write(f"{category_ids.index(category_id)} {x_center} {y_center} {width} {height}\n")
+        for future in tqdm(concurrent.futures.as_completed(future_to_img), total=len(imgs), desc="Downloading images and creating labels", unit="image"):
+            img = future_to_img[future]
+            try:
+                future.result()
+                # Create label file
+                annIds = coco.getAnnIds(imgIds=img['id'], catIds=category_ids, iscrowd=None)
+                anns = coco.loadAnns(annIds)
+                create_label_file(img, anns, labels_dir, category_ids)
+            except Exception as exc:
+                print(f"Error downloading {img['file_name']}: {exc}")
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
