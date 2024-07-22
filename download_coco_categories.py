@@ -31,9 +31,10 @@ def download_file(url, dest):
     ) as bar:
         start_time = time.time()
         for data in response.iter_content(chunk_size=1024):
+            file.write(data)
             bar.update(len(data))
             elapsed_time = time.time() - start_time
-            bar.set_postfix(disk_used=f'{bar.n_fmt}B', total_size=f'{total_size/1024/1024:.2f}MB', download_speed=f'{(bar.n / 1024) / elapsed_time:.2f} KB/s')
+            bar.set_postfix(disk_used=f'{bar.n}B', total_size=f'{total_size/1024/1024:.2f}MB', download_speed=f'{(bar.n / 1024) / elapsed_time:.2f} KB/s')
 
 def download_annotations(data_dir):
     ann_path = os.path.join(data_dir, 'annotations')
