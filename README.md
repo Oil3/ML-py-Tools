@@ -10,3 +10,6 @@ It prompts for the number of files to process in each folder, with the option to
 
 **videocrop_path_top_right_bot_left.py** - Crops a video file  by removing specified amounts of pixels from its sides (top, right, bottom, left).
 `py script.py video.mp4 100 0 200 20` would create a video_cropped.mp4 with 100 pixels removed from the top, 0 pixels removed from the right side, 200 pixels removed from the bottom, and 20 pixels removed from the left side.
+
+**nospaces.swift** - removes python-breaking characters of files within chosen folder, and replaces spaces by underscores.
+`swift nospaces.swift` asks for folder if not given as argument. Saves changes (old name - new name) in a txt file. Obviously had to be a Swift script.
