@@ -1,3 +1,5 @@
+**mass_rename.py** -  script to give same random name to each label/image pairs `python3 script.py labels_path images_path`  
+  
 **resize.py** - interactive script to resize images inside a folder using PIL, choice of interpolation nearest, bilinear, bicubic, lanczos. "all" option to compare. 
 
 
