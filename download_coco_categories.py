@@ -41,8 +41,11 @@ def download_annotations(data_dir):
     if not os.path.exists(ann_path):
         print("Annotations not found. Downloading annotations...")
         download_file(ANN_FILE, os.path.join(data_dir, 'annotations.zip'))
-        os.system(f'unzip -q {os.path.join(data_dir, "annotations.zip")} -d {data_dir}')
-        os.remove(os.path.join(data_dir, 'annotations.zip'))
+        if os.name == "nt":
+            os.system(f'powershell -Command "Expand-Archive -Path {os.path.join(data_dir, "annotations.zip")} -DestinationPath {data_dir}"')
+        else: 
+            os.system(f'unzip -q {os.path.join(data_dir, "annotations.zip")} -d {data_dir}')
+       # os.remove(os.path.join(data_dir, 'annotations.zip'))
     else:
         print("Annotations already present.")
 
