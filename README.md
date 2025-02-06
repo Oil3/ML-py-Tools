@@ -1,31 +1,13 @@
-**videoFrameExtractor.py** -  interactive script to extract frames, super fast. OpenCV required nothing more. `file or folder, configurable stride, start and end frames`    
+# No weird dependencies, mac and windows friendly, interactive or with defaults, fast.  
 
-
-
-**yobb_to_yolo_bbox** script to convert orientated bbox labels into normal yolo bbox. Interactive, multithreaded, checks for errors, keeps going, if given, optionally, the images folder, it checks that images have their pairs. Backup is created and then labels overwritten.  
-
-**mass_rename.py** -  script to give same random name to each label/image pairs `python3 script.py labels_path images_path`  
-  
-**resize.py** - interactive script to resize images inside a folder using PIL, choice of interpolation nearest, bilinear, bicubic, lanczos. "all" option to compare. 
-
-
-**download_coco_categories.py** - downloads specific classes from the coco dataset, multi-threaded, also creates yolo-format label files for each image.
-![image](https://github.com/user-attachments/assets/33877648-ee9f-423f-9fa8-2103ba61dc1a)
-Interactive as in prompts you what and where with then a progress bar, multi-threaded as in as fast as possible, also runnable for exemple, like `py script.py 0` for class 0 in a newfolder in current directoy, or like `py script.py 1,33,56,57,70 download_path` with specific directory. 
-
-
-  
-**Structure.py** - recreates folder structure while choosing how many files are copied from the original folders.
-I use to create validation datesets from training datasets.
-
-  
-**Json_to_Folders.py** - sorts files into folders based on selected attributes values of a JSON file.
-It prompts for the number of files to process in each folder, with the option to process all files.
-
-  
-**videocrop_path_top_right_bot_left.py** - Crops a video file  by removing specified amounts of pixels from its sides (top, right, bottom, left).
-`py script.py video.mp4 100 0 200 20` would create a video_cropped.mp4 with 100 pixels removed from the top, 0 pixels removed from the right side, 200 pixels removed from the bottom, and 20 pixels removed from the left side.
-
-  
-**nospaces.swift** - removes python-breaking characters of files within chosen folder, and replaces spaces by underscores.  
-`swift nospaces.swift` asks for folder if not given as argument. Logs changes (old name - new name) in a txt file within folder and just had to be a Swift script.
+| Script | Description |
+|--------|------------|
+| **videoFrameExtractor.py** | Interactive script to extract frames, super fast. OpenCV required, nothing more. Accepts file or folder input, configurable stride, and start/end frames. |
+| **yobb_to_yolo_bbox.py** | Converts oriented bbox labels into normal YOLO bbox. Interactive, multithreaded, error-checking, and continues processing even on errors. If an image folder is provided, it verifies that images have their label pairs. Creates a backup before overwriting labels. |
+| **mass_rename.py** | Renames label/image pairs with the same random name. Usage: `python3 script.py labels_path images_path`. |
+| **resize.py** | Interactive script to resize images inside a folder using PIL. Supports interpolation methods: nearest, bilinear, bicubic, and lanczos. "All" option available for comparison. |
+| **download_coco_categories.py** | Downloads specific classes from the COCO dataset, multi-threaded, and creates YOLO-format label files. Interactive with prompts and a progress bar, but also allows direct CLI usage: `py script.py 0` (class 0) or `py script.py 1,33,56,57,70 download_path`  |
+| **Structure.py** | Recreates folder structure while allowing selection of how many files to copy from the original folders. Useful for creating validation datasets from training datasets. |
+| **Json_to_Folders.py** | Sorts files into folders based on selected attribute values from a JSON file. Prompts for the number of files per folder with an option to process all files. |
+| **videocrop_path_top_right_bot_left.py** | Crops a video by removing specified pixel amounts from its sides (top, right, bottom, left). Example usage: `py script.py video.mp4 100 0 200 20` (removes 100 pixels from top, 0 from right, 200 from bottom, 20 from left). |
+| **nospaces.swift** | Removes Python-breaking characters from filenames in a chosen folder and replaces spaces with underscores. Usage: `swift nospaces.swift` (prompts for folder if not provided). Logs changes (old name → new name) in a text file within the folder. |
