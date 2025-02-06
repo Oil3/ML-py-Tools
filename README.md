@@ -1,4 +1,4 @@
-# No weird dependencies, mac and windows friendly, interactive or with defaults, fast.  
+### Scripts with no obscure dependencies, mac and windows friendly, interactive or with defaults, fast.  
 
 | Script | Description |
 |--------|------------|
